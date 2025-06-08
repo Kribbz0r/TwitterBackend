@@ -3,6 +3,8 @@ package com.twitter_backend.models;
 import java.sql.Date;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
@@ -21,9 +23,9 @@ import jakarta.persistence.Table;
 public class ApplicationUser {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "user_id")
-    private Integer userId;
+    private UUID userId;
 
     @Column(name = "first:name")
     private String firstName;
@@ -50,15 +52,15 @@ public class ApplicationUser {
             @JoinColumn(name = "role_id") })
     private Set<Role> authorities;
 
-    private ApplicationUser() {
+    public ApplicationUser() {
         this.authorities = new HashSet<>();
     }
 
-    public Integer getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
-    public void setUserId(Integer userId) {
+    public void setUserId(UUID userId) {
         this.userId = userId;
     }
 
