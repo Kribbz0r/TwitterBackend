@@ -24,11 +24,15 @@ public class TwitterBackendApplication {
 	CommandLineRunner run(RoleRepository roleRepository, UserService userService) {
 		return args -> {
 			roleRepository.save(new Role(1, "USER"));
-			ApplicationUser user = new ApplicationUser();
-			user.setFirstName("Dude");
-			user.setLastName("Duder");
 
-			userService.registerUser(user);
+			// create user in database with service
+
+			// ApplicationUser user = new ApplicationUser();
+			// user.setFirstName("Dude");
+			// user.setLastName("Duder");
+			// userService.registerUser(user);
+
+			// Create user in database without service
 
 			// ApplicationUser user = new ApplicationUser();
 			// user.setFirstName("Dude");
