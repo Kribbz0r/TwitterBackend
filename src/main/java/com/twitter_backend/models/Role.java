@@ -16,7 +16,6 @@ public class Role {
     private String authority;
 
     public Role() {
-        super();
     }
 
     public Role(Integer roleID, String authority) {

@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.stereotype.Service;
 
+import com.twitter_backend.exceptions.EmailAlreadyExistsException;
 import com.twitter_backend.models.ApplicationUser;
+import com.twitter_backend.models.RegistrationObject;
 import com.twitter_backend.models.Role;
 import com.twitter_backend.repositories.RoleRepository;
 import com.twitter_backend.repositories.UserRepository;
@@ -24,11 +26,44 @@ public class UserService {
 
     }
 
-    public ApplicationUser registerUser(ApplicationUser user) {
+    public ApplicationUser registerUser(RegistrationObject registrationObject) {
+
+        ApplicationUser user = new ApplicationUser();
+
+        user.setFirstName(registrationObject.getFirstName());
+        user.setLastName(registrationObject.getLastName());
+        user.setEmail(registrationObject.getEmail());
+        user.setDateOfBirth(registrationObject.getDateOfBirth());
+
+        String name = user.getFirstName() + user.getLastName();
+        boolean nametaken = true;
+        String tempName = "";
+        while (nametaken) {
+            tempName = generatedUsername(name);
+            if (userRepository.findByUsername(tempName).isEmpty()) {
+                nametaken = false;
+            }
+        }
+
         Set<Role> roles = user.getAuthorities();
         roles.add(roleRepository.findByAuthority("USER").get());
         user.setAuthorities(roles);
 
-        return userRepository.save(user);
+        user.setUsername(tempName);
+
+        try {
+            return userRepository.save(user);
+        } catch (Exception e) {
+            throw new EmailAlreadyExistsException();
+        }
+
     }
+
+    private String generatedUsername(String name) {
+
+        long generatedNumber = (long) Math.floor(Math.random() * 1_000_000_000);
+        return name + generatedNumber;
+
+    }
+
 }
