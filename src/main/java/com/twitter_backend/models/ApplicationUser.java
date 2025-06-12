@@ -52,8 +52,15 @@ public class ApplicationUser {
             @JoinColumn(name = "role_id") })
     private Set<Role> authorities;
 
+    private boolean enabled;
+
+    @Column(nullable = true)
+    @JsonIgnore
+    private Long verification;
+
     public ApplicationUser() {
         this.authorities = new HashSet<>();
+        this.enabled = false;
     }
 
     public UUID getUserId() {
@@ -128,11 +135,28 @@ public class ApplicationUser {
         this.authorities = authorities;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public Long getVerification() {
+        return verification;
+    }
+
+    public void setVerification(Long verification) {
+        this.verification = verification;
+    }
+
     @Override
     public String toString() {
         return "ApplicationUser [userId=" + userId + ", firstName=" + firstName + ", lastName=" + lastName + ", email="
                 + email + ", phoneNumber=" + phoneNumber + ", dateOfBirth=" + dateOfBirth + ", username=" + username
-                + ", password=" + password + ", authorities=" + authorities + "]";
+                + ", password=" + password + ", authorities=" + authorities + ", enabled=" + enabled + ", verification="
+                + verification + "]";
     }
 
 }

@@ -79,4 +79,17 @@ public class UserService {
         }
     }
 
+    public void generateUserVerification(String username) {
+        ApplicationUser user = userRepository.findByUsername(username).orElseThrow(UserDoesntExistException::new);
+
+        user.setVerification(generateVerificationNumber());
+
+        userRepository.save(user);
+    }
+
+    private Long generateVerificationNumber() {
+        return (long) Math.floor(Math.random() * 1_000_000_000);
+
+    }
+
 }
