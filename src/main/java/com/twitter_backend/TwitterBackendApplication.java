@@ -23,7 +23,7 @@ public class TwitterBackendApplication {
 	@Bean
 	CommandLineRunner run(RoleRepository roleRepository, UserService userService) {
 		return args -> {
-			roleRepository.save(new Role(1, "USER"));
+			// roleRepository.save(new Role(1, "USER"));
 
 			// create user in database with service
 

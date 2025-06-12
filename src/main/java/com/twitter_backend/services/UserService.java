@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.twitter_backend.exceptions.EmailAlreadyExistsException;
+import com.twitter_backend.exceptions.UserDoesntExistException;
 import com.twitter_backend.models.ApplicationUser;
 import com.twitter_backend.models.RegistrationObject;
 import com.twitter_backend.models.Role;
@@ -64,6 +65,18 @@ public class UserService {
         long generatedNumber = (long) Math.floor(Math.random() * 1_000_000_000);
         return name + generatedNumber;
 
+    }
+
+    public ApplicationUser getUserByUsername(String username) {
+        return userRepository.findByUsername(username).orElseThrow(UserDoesntExistException::new);
+    }
+
+    public ApplicationUser updateUser(ApplicationUser user) {
+        try {
+            return userRepository.save(user);
+        } catch (Exception e) {
+            throw new EmailAlreadyExistsException();
+        }
     }
 
 }
