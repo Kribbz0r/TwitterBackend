@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.twitter_backend.exceptions.EmailAlreadyExistsException;
 import com.twitter_backend.exceptions.EmailFailedToSendException;
+import com.twitter_backend.exceptions.IncorrectVerificationCodeException;
 import com.twitter_backend.exceptions.UserDoesntExistException;
 import com.twitter_backend.models.ApplicationUser;
 import com.twitter_backend.models.RegistrationObject;
@@ -46,6 +47,11 @@ public class AuthenticationController {
                 HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler({ IncorrectVerificationCodeException.class })
+    public ResponseEntity<String> IncorrectVerificationCodeException() {
+        return new ResponseEntity<>("Incorrect verificationcode", HttpStatus.CONFLICT);
+    }
+
     @PostMapping("/register")
     public ApplicationUser registerUser(@RequestBody RegistrationObject registrationObject) {
         return userService.registerUser(registrationObject);
@@ -65,7 +71,7 @@ public class AuthenticationController {
 
     }
 
-    @PostMapping("/email/verification")
+    @PostMapping("/email/verification/code")
     public ResponseEntity<String> createEmailVerification(@RequestBody LinkedHashMap<String, String> body)
             throws Exception {
         try {
@@ -76,6 +82,13 @@ public class AuthenticationController {
         }
 
         return new ResponseEntity<String>("Verification code has been sent to your email", HttpStatus.OK);
+    }
+
+    @PostMapping("email/verification/verify")
+    public ApplicationUser verifyEmail(@RequestBody LinkedHashMap<String, String> body) throws Exception {
+        Long code = Long.parseLong(body.get("verificationCode"));
+        String username = body.get("username");
+        return userService.verifyEmail(username, code);
     }
 
 }

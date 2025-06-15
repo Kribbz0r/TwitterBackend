@@ -1,5 +1,6 @@
 package com.twitter_backend.services;
 
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.twitter_backend.exceptions.EmailAlreadyExistsException;
 import com.twitter_backend.exceptions.EmailFailedToSendException;
+import com.twitter_backend.exceptions.IncorrectVerificationCodeException;
 import com.twitter_backend.exceptions.UserDoesntExistException;
 import com.twitter_backend.models.ApplicationUser;
 import com.twitter_backend.models.RegistrationObject;
@@ -58,6 +60,7 @@ public class UserService {
         try {
             return userRepository.save(user);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new EmailAlreadyExistsException();
         }
 
@@ -78,6 +81,7 @@ public class UserService {
         try {
             return userRepository.save(user);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new EmailAlreadyExistsException();
         }
     }
@@ -91,7 +95,8 @@ public class UserService {
                     "This is your verification code: " + user.getVerification());
             userRepository.save(user);
         } catch (Exception e) {
-            throw e;
+            e.printStackTrace();
+            throw new EmailFailedToSendException();
         }
 
         userRepository.save(user);
@@ -99,6 +104,24 @@ public class UserService {
 
     private Long generateVerificationNumber() {
         return (long) Math.floor(Math.random() * 1_000_000_000);
+
+    }
+
+    public ApplicationUser verifyEmail(String username, Long verificationCode) throws Exception {
+
+        try {
+            ApplicationUser user = userRepository.findByUsername(username).orElseThrow(UserDoesntExistException::new);
+            if (verificationCode.equals(user.getVerification())) {
+                user.setEnabled(true);
+                user.setVerification(null);
+                return userRepository.save(user);
+            } else {
+                throw new IncorrectVerificationCodeException();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IncorrectVerificationCodeException();
+        }
 
     }
 
