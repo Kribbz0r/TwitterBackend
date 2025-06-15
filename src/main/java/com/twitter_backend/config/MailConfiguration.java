@@ -38,7 +38,6 @@ public class MailConfiguration {
     private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
 
     private Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws IOException {
-
         InputStream in = MailConfiguration.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             throw new FileNotFoundException("Credentials file not found");

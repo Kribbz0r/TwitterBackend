@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.twitter_backend.exceptions.EmailAlreadyExistsException;
+import com.twitter_backend.exceptions.EmailFailedToSendException;
 import com.twitter_backend.exceptions.UserDoesntExistException;
 import com.twitter_backend.models.ApplicationUser;
 import com.twitter_backend.models.RegistrationObject;
@@ -19,11 +20,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final MailService mailService;
 
     @Autowired
-    public UserService(UserRepository userRepository, RoleRepository roleRepository) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, MailService mailService) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
+        this.mailService = mailService;
 
     }
 
@@ -79,10 +82,17 @@ public class UserService {
         }
     }
 
-    public void generateUserVerification(String username) {
+    public void generateUserVerification(String username) throws Exception {
         ApplicationUser user = userRepository.findByUsername(username).orElseThrow(UserDoesntExistException::new);
-
         user.setVerification(generateVerificationNumber());
+
+        try {
+            mailService.sendGmail(user.getEmail(), "Your verification code",
+                    "This is your verification code: " + user.getVerification());
+            userRepository.save(user);
+        } catch (Exception e) {
+            throw e;
+        }
 
         userRepository.save(user);
     }

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.twitter_backend.exceptions.EmailAlreadyExistsException;
+import com.twitter_backend.exceptions.EmailFailedToSendException;
 import com.twitter_backend.exceptions.UserDoesntExistException;
 import com.twitter_backend.models.ApplicationUser;
 import com.twitter_backend.models.RegistrationObject;
@@ -39,6 +40,12 @@ public class AuthenticationController {
         return new ResponseEntity<String>("The user doesn't exist", HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler({ EmailFailedToSendException.class })
+    public ResponseEntity<String> handleFailedToSendEmail() {
+        return new ResponseEntity<>("Failed to send email, try again later",
+                HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @PostMapping("/register")
     public ApplicationUser registerUser(@RequestBody RegistrationObject registrationObject) {
         return userService.registerUser(registrationObject);
@@ -59,8 +66,14 @@ public class AuthenticationController {
     }
 
     @PostMapping("/email/verification")
-    public ResponseEntity<String> createEmailVerification(@RequestBody LinkedHashMap<String, String> body) {
-        userService.generateUserVerification(body.get("username"));
+    public ResponseEntity<String> createEmailVerification(@RequestBody LinkedHashMap<String, String> body)
+            throws Exception {
+        try {
+            userService.generateUserVerification(body.get("username"));
+        } catch (Exception e) {
+            e.printStackTrace();
+
+        }
 
         return new ResponseEntity<String>("Verification code has been sent to your email", HttpStatus.OK);
     }

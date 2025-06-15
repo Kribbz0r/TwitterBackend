@@ -29,10 +29,9 @@ public class MailService {
 
         Properties properties = new Properties();
 
-        Session session = Session.getInstance(properties, null);
+        Session session = Session.getDefaultInstance(properties, null);
 
         MimeMessage email = new MimeMessage(session);
-
         try {
             email.setFrom(new InternetAddress(System.getenv("MAIL_SERVICE_ADDRESS")));
             email.addRecipient(jakarta.mail.Message.RecipientType.TO, new InternetAddress(toAdress));
@@ -49,6 +48,7 @@ public class MailService {
             message.setRaw(encodedEmail);
             message = gmail.users().messages().send("me", message).execute();
         } catch (Exception e) {
+            e.printStackTrace();
             throw new EmailFailedToSendException();
 
         }
