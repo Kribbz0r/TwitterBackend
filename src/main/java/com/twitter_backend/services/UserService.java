@@ -1,10 +1,11 @@
 package com.twitter_backend.services;
 
+import java.net.Authenticator;
 import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.twitter_backend.exceptions.EmailAlreadyExistsException;
@@ -23,13 +24,15 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final MailService mailService;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, MailService mailService) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, MailService mailService,
+            PasswordEncoder passwordEncoder) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.mailService = mailService;
-
+        this.passwordEncoder = passwordEncoder;
     }
 
     public ApplicationUser registerUser(RegistrationObject registrationObject) {
@@ -108,7 +111,6 @@ public class UserService {
     }
 
     public ApplicationUser verifyEmail(String username, Long verificationCode) throws Exception {
-
         try {
             ApplicationUser user = userRepository.findByUsername(username).orElseThrow(UserDoesntExistException::new);
             if (verificationCode.equals(user.getVerification())) {
@@ -122,7 +124,14 @@ public class UserService {
             e.printStackTrace();
             throw new IncorrectVerificationCodeException();
         }
+    }
 
+    public ApplicationUser setPassword(String username, String password) {
+        ApplicationUser user = userRepository.findByUsername(username).orElseThrow(UserDoesntExistException::new);
+        String encodedPassword = passwordEncoder.encode(password);
+        user.setPassword(encodedPassword);
+
+        return userRepository.save(user);
     }
 
 }
