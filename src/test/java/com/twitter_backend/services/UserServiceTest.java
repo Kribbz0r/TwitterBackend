@@ -1,6 +1,8 @@
 package com.twitter_backend.services;
 
 import com.twitter_backend.exceptions.EmailAlreadyExistsException;
+import com.twitter_backend.exceptions.EmailFailedToSendException;
+import com.twitter_backend.exceptions.UserDoesntExistException;
 import com.twitter_backend.models.ApplicationUser;
 import com.twitter_backend.models.RegistrationObject;
 import com.twitter_backend.models.Role;
@@ -19,6 +21,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 public class UserServiceTest {
@@ -29,6 +33,8 @@ public class UserServiceTest {
     private RoleRepository roleRepository;
     @Mock
     private ApplicationUser applicationUser;
+    @Mock
+    private MailService mailService;
 
     @InjectMocks
     private UserService userService;
@@ -102,4 +108,59 @@ public class UserServiceTest {
         assertThrows(EmailAlreadyExistsException.class, () -> userService.registerUser(registrationObject));
     }
 
+    @Test
+    void givenExistingUser_whenGenerateUserVerification_thenEmailSentAndUserSavedOnce() throws Exception {
+        ApplicationUser user = new ApplicationUser();
+        user.setUsername("TheDude");
+        user.setEmail("dude@example.com");
+        when(userRepository.findByUsername("TheDude")).thenReturn(Optional.of(user));
+        doNothing().when(mailService).sendGmail(anyString(), anyString(), anyString());
+
+        userService.generateUserVerification("TheDude");
+
+        assertNotNull(user.getVerification());
+        verify(mailService).sendGmail(
+                eq("dude@example.com"),
+                eq("Your verification code"),
+                contains(user.getVerification().toString()));
+        verify(userRepository, times(1)).save(user);
+    }
+
+    @Test
+    void givenNonExistingUser_whenGenerateUserVerification_thenThrowsUserDoesntExistException() {
+        when(userRepository.findByUsername("notTheDude")).thenReturn(Optional.empty());
+
+        assertThrows(UserDoesntExistException.class,
+                () -> userService.generateUserVerification("notTheDude"));
+        verifyNoInteractions(mailService);
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void givenExistingUser_whenEmailFails_thenThrowsEmailFailedToSendException() throws Exception {
+        ApplicationUser user = new ApplicationUser();
+        user.setUsername("TheDude");
+        user.setEmail("dude@example.com");
+        when(userRepository.findByUsername("TheDude")).thenReturn(Optional.of(user));
+        doThrow(new RuntimeException("Mail error"))
+                .when(mailService).sendGmail(anyString(), anyString(), anyString());
+
+        assertThrows(EmailFailedToSendException.class,
+                () -> userService.generateUserVerification("TheDude"));
+        verify(userRepository, never()).save(user);
+    }
+
+    @Test
+    void givenExistingUser_whenGenerateUserVerification_thenVerificationNumberMatchesPattern() throws Exception {
+        ApplicationUser user = new ApplicationUser();
+        user.setUsername("TheDude");
+        user.setEmail("dude@example.com");
+        when(userRepository.findByUsername("TheDude")).thenReturn(Optional.of(user));
+        doNothing().when(mailService).sendGmail(anyString(), anyString(), anyString());
+
+        userService.generateUserVerification("TheDude");
+
+        // Note to self. Study matches(). What if its null? This should handle it, no?
+        assertTrue(user.getVerification().toString().matches("\\d+"));
+    }
 }

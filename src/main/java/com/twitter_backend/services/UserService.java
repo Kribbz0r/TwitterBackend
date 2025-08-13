@@ -91,9 +91,9 @@ public class UserService {
 
     public void generateUserVerification(String username) throws Exception {
         ApplicationUser user = userRepository.findByUsername(username).orElseThrow(UserDoesntExistException::new);
-        user.setVerification(generateVerificationNumber());
 
         try {
+            user.setVerification(generateVerificationNumber());
             mailService.sendGmail(user.getEmail(), "Your verification code",
                     "This is your verification code: " + user.getVerification());
             userRepository.save(user);
@@ -102,7 +102,6 @@ public class UserService {
             throw new EmailFailedToSendException();
         }
 
-        userRepository.save(user);
     }
 
     private Long generateVerificationNumber() {
