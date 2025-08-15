@@ -37,7 +37,7 @@ public class UserServiceTest {
     private MailService mailService;
 
     @InjectMocks
-    private UserService userService;
+    private UserService sut;
 
     @BeforeEach
     void setUp() {
@@ -57,9 +57,9 @@ public class UserServiceTest {
         when(roleRepository.findByAuthority("USER")).thenReturn(Optional.of(new Role(1, "USER")));
         when(userRepository.save(any(ApplicationUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ApplicationUser savedUser = userService.registerUser(registrationObject);
+        ApplicationUser savedUser = sut.registerUser(registrationObject);
 
-        assertNotNull(savedUser.getUsername());
+        assertTrue(savedUser.getUsername().contains(registrationObject.getFirstName()));
         assertTrue(savedUser.getAuthorities().stream().anyMatch(role -> role.getAuthority().equals("USER")));
         verify(userRepository, atLeastOnce()).save(any(ApplicationUser.class));
     }
@@ -77,7 +77,7 @@ public class UserServiceTest {
         when(roleRepository.findByAuthority("USER")).thenReturn(Optional.of(new Role(1, "USER")));
         when(userRepository.save(any(ApplicationUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ApplicationUser savedUser = userService.registerUser(registrationObject);
+        ApplicationUser savedUser = sut.registerUser(registrationObject);
 
         assertNotNull(savedUser.getUsername());
         verify(userRepository, times(2)).findByUsername(anyString());
@@ -92,7 +92,7 @@ public class UserServiceTest {
         when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
         when(roleRepository.findByAuthority("USER")).thenReturn(Optional.empty());
 
-        assertThrows(NoSuchElementException.class, () -> userService.registerUser(registrationObject));
+        assertThrows(NoSuchElementException.class, () -> sut.registerUser(registrationObject));
     }
 
     @Test
@@ -105,25 +105,25 @@ public class UserServiceTest {
         when(roleRepository.findByAuthority("USER")).thenReturn(Optional.of(new Role(1, "USER")));
         when(userRepository.save(any(ApplicationUser.class))).thenThrow(new RuntimeException());
 
-        assertThrows(EmailAlreadyExistsException.class, () -> userService.registerUser(registrationObject));
+        assertThrows(EmailAlreadyExistsException.class, () -> sut.registerUser(registrationObject));
     }
 
     @Test
-    void givenExistingUser_whenGenerateUserVerification_thenEmailSentAndUserSavedOnce() throws Exception {
+    void givenExistingUser_whenGenerateUserVerification_thenEmailSentAndUserSaved() throws Exception {
         ApplicationUser user = new ApplicationUser();
         user.setUsername("TheDude");
         user.setEmail("dude@example.com");
         when(userRepository.findByUsername("TheDude")).thenReturn(Optional.of(user));
         doNothing().when(mailService).sendGmail(anyString(), anyString(), anyString());
 
-        userService.generateUserVerification("TheDude");
+        sut.generateUserVerification("TheDude");
 
         assertNotNull(user.getVerification());
         verify(mailService).sendGmail(
                 eq("dude@example.com"),
                 eq("Your verification code"),
                 contains(user.getVerification().toString()));
-        verify(userRepository, times(1)).save(user);
+        verify(userRepository).save(user);
     }
 
     @Test
@@ -131,7 +131,7 @@ public class UserServiceTest {
         when(userRepository.findByUsername("notTheDude")).thenReturn(Optional.empty());
 
         assertThrows(UserDoesntExistException.class,
-                () -> userService.generateUserVerification("notTheDude"));
+                () -> sut.generateUserVerification("notTheDude"));
         verifyNoInteractions(mailService);
         verify(userRepository, never()).save(any());
     }
@@ -146,7 +146,7 @@ public class UserServiceTest {
                 .when(mailService).sendGmail(anyString(), anyString(), anyString());
 
         assertThrows(EmailFailedToSendException.class,
-                () -> userService.generateUserVerification("TheDude"));
+                () -> sut.generateUserVerification("TheDude"));
         verify(userRepository, never()).save(user);
     }
 
@@ -158,9 +158,29 @@ public class UserServiceTest {
         when(userRepository.findByUsername("TheDude")).thenReturn(Optional.of(user));
         doNothing().when(mailService).sendGmail(anyString(), anyString(), anyString());
 
-        userService.generateUserVerification("TheDude");
+        sut.generateUserVerification("TheDude");
 
         // Note to self. Study matches(). What if its null? This should handle it, no?
         assertTrue(user.getVerification().toString().matches("\\d+"));
     }
+
+    @Test
+    void givenValidUser_whenUpdateUser_thenUserIsSaved() throws Exception {
+        ApplicationUser user = new ApplicationUser();
+        when(userRepository.save(user)).thenReturn(user);
+
+        ApplicationUser updated = sut.updateUser(user);
+
+        assertEquals(user, updated);
+    }
+
+    @Test
+    void givenSaveFails_whenUpdateUser_thenThrowsEmailAlreadyExists() throws Exception {
+
+        ApplicationUser user = new ApplicationUser();
+        when(userRepository.save(user)).thenThrow(IllegalArgumentException.class);
+
+        assertThrows(EmailAlreadyExistsException.class, () -> sut.updateUser(user));
+    }
+
 }
