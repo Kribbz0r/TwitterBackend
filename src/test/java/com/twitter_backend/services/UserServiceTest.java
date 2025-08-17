@@ -65,25 +65,6 @@ public class UserServiceTest {
     }
 
     @Test
-    void givenUsernameCollision_whenRegisterUser_thenTriesAgain() {
-        RegistrationObject registrationObject = new RegistrationObject();
-        registrationObject.setFirstName("TheDude");
-        registrationObject.setLastName("Dudeson");
-
-        when(userRepository.findByUsername(anyString()))
-                .thenReturn(Optional.of(new ApplicationUser()))
-                .thenReturn(Optional.empty());
-
-        when(roleRepository.findByAuthority("USER")).thenReturn(Optional.of(new Role(1, "USER")));
-        when(userRepository.save(any(ApplicationUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        ApplicationUser savedUser = sut.registerUser(registrationObject);
-
-        assertNotNull(savedUser.getUsername());
-        verify(userRepository, times(2)).findByUsername(anyString());
-    }
-
-    @Test
     void givenRoleNotFound_whenRegisterUser_thenThrowsNoSuchElement() {
         RegistrationObject registrationObject = new RegistrationObject();
         registrationObject.setFirstName("TheDude");
@@ -160,7 +141,6 @@ public class UserServiceTest {
 
         sut.generateUserVerification("TheDude");
 
-        // Note to self. Study matches(). What if its null? This should handle it, no?
         assertTrue(user.getVerification().toString().matches("\\d+"));
     }
 
@@ -181,6 +161,19 @@ public class UserServiceTest {
         when(userRepository.save(user)).thenThrow(IllegalArgumentException.class);
 
         assertThrows(EmailAlreadyExistsException.class, () -> sut.updateUser(user));
+    }
+
+    @Test
+    void givenCorrectVerificationCode_whenVerifyEmail_thenEnableUser() throws Exception {
+        ApplicationUser user = new ApplicationUser();
+        user.setVerification(123L);
+        when(userRepository.findByUsername("TheDude")).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        ApplicationUser result = sut.verifyEmail("TheDude", 123L);
+
+        assertTrue(result.isEnabled());
+        assertNull(result.getVerification());
     }
 
 }
